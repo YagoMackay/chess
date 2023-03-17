@@ -1,6 +1,7 @@
 import Board from '@/components/Board';
-import { gameSubject } from '@/lib/Game';
-import { Center, Container } from '@chakra-ui/layout';
+import { gameSubject, initGame, resetGame } from '@/lib/Game';
+import { Center, Container, Text } from '@chakra-ui/layout';
+import { Button } from '@chakra-ui/react';
 import { Inter } from 'next/font/google';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
@@ -9,13 +10,18 @@ const inter = Inter({ subsets: ['latin'] });
 
 export default function Home() {
   const [board, setBoard] = useState([]);
-
-  console.log('board', board);
+  const [isGameOver, setIsGameOver] = useState();
+  const [result, setResult] = useState();
+  const [turn, setTurn] = useState();
 
   useEffect(() => {
-    const subscribe = gameSubject.subscribe((game: any) =>
-      setBoard(game.board)
-    );
+    initGame();
+    const subscribe = gameSubject.subscribe((game: any) => {
+      setBoard(game.board);
+      setIsGameOver(game.isGameOver);
+      setResult(game.result);
+      setTurn(game.turn);
+    });
     return () => subscribe.unsubscribe();
   }, []);
   return (
@@ -34,9 +40,55 @@ export default function Home() {
         alignItems={'center'}
         justifyContent={'center'}
       >
+        {isGameOver && (
+          <Text
+            style={{
+              textOrientation: 'upright',
+              writingMode: 'vertical-lr',
+              fontFamily: 'sans-serif',
+            }}
+            p={'10px'}
+            color="white"
+          >
+            GAME OVER
+            <Button
+              p="10px"
+              color="white"
+              mt="20px"
+              cursor={'pointer'}
+              background="rgb(63,63,63)"
+              border={'2px solid white'}
+              borderRadius="10px"
+              onClick={resetGame}
+            >
+              <span
+                style={{
+                  textOrientation: 'upright',
+                  writingMode: 'vertical-lr',
+                  fontFamily: 'sans-serif',
+                }}
+              >
+                New Game
+              </span>
+            </Button>
+          </Text>
+        )}
         <Center width={'600px'} height={'600px'}>
-          <Board board={board}></Board>
+          <Board board={board} turn={turn}></Board>
         </Center>
+        {result && (
+          <Text
+            style={{
+              textOrientation: 'upright',
+              writingMode: 'vertical-lr',
+              fontFamily: 'sans-serif',
+            }}
+            p={'10px'}
+            color="white"
+          >
+            {result}
+          </Text>
+        )}
       </Container>
     </>
   );
