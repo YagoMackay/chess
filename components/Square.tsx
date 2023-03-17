@@ -2,7 +2,7 @@ import { Box } from '@chakra-ui/react';
 
 type SquareProps = {
   black?: boolean;
-  children?: any;
+  children?: React.ReactNode;
 };
 const Square = ({ children, black }: SquareProps) => {
   const bgClass = black ? '#B59963' : '#F0D9B5';
