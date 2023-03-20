@@ -1,9 +1,12 @@
 import { Chess } from 'chess.js';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, map } from 'rxjs';
+import { auth } from './firebase';
 
 const chess = new Chess();
 
-export const gameSubject = new BehaviorSubject({ board: chess.board() });
+export let gameSubject;
+let member;
+let gameRef;
 
 export const move = (from: string, to: string, promotion?: any) => {
   try {
@@ -35,8 +38,67 @@ export const handleMove = (from: any, to: any) => {
   }
 };
 
-export const initGame = () => {
-  updateGame();
+export const initGame = async (gameRefFb?: any) => {
+  const currentUser = auth;
+  //this needs to be changed, we are getting undefined
+  gameSubject = new BehaviorSubject({ board: chess.board() });
+  console.log('SHOULD BE HERE');
+  if (gameRefFb) {
+    const initialGame = await gameRefFb.get().then((doc) => doc.data());
+    console.log('init', initialGame);
+    if (!initialGame) {
+      return 'notfound';
+    }
+
+    const creator = initialGame.members.find((m) => m.creator === true);
+    if (initialGame.status === 'waiting' && creator.uid !== currentUser.uid) {
+      const currUser = {
+        uid: currentUser.uid,
+        name: localStorage.getItem('userName'),
+        piece: creator.piece === 'w' ? 'b' : 'w',
+      };
+      const updatedMembers = [...initialGame.members, currUser];
+      await gameRefFb.update({ members: updatedMembers, status: 'ready' });
+    } else if (
+      !initialGame.members.map((m) => m.uid).includes(currentUser.uid)
+    ) {
+      return 'intruder';
+    }
+
+    chess.reset();
+
+    gameSubject = fromDocRef(gameRefFb).pipe(
+      map((gameDoc) => {
+        const game = gameDoc.data();
+        const { pendingPromotion, gameData, ...restOfGame } = game;
+        member = game.members.find((m) => m.uid === currentUser.uid);
+        const oponent = game.members.find((m) => m.uid !== currentUser.uid);
+
+        if (gameData) {
+          chess.load(gameData);
+        }
+        const isGameOver = chess.isGameOver();
+        return {
+          board: chess.board(),
+          pendingPromotion,
+          isGameOver,
+          turn: member.piece,
+          member,
+          oponent,
+          result: isGameOver ? getGameResult() : null,
+          ...restOfGame,
+        };
+      })
+    );
+  } else {
+    gameRef = null;
+    gameSubject = new BehaviorSubject({ board: chess.board() });
+    const savedGame = localStorage.getItem('savedGame');
+    if (savedGame) {
+      chess.load(savedGame);
+    }
+    updateGame();
+  }
 };
 
 export const resetGame = () => {
