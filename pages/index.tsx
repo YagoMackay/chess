@@ -24,6 +24,9 @@ export default function Home() {
     });
     return () => subscribe.unsubscribe();
   }, []);
+
+  console.log('bozrd', board);
+  console.log('turn', turn);
   return (
     <>
       <Head>
