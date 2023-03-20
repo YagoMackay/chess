@@ -3,15 +3,12 @@ import { BehaviorSubject } from 'rxjs';
 
 const chess = new Chess();
 
-console.log(chess.board());
-
 export const gameSubject = new BehaviorSubject({ board: chess.board() });
 
 export const move = (from: string, to: string, promotion?: any) => {
   try {
     let tempMove = { from, to, promotion };
     if (promotion) {
-      console.log('SHOULD be here', promotion);
       tempMove.promotion = promotion;
     }
     const legalMove = chess.move(tempMove);
@@ -25,7 +22,6 @@ export const move = (from: string, to: string, promotion?: any) => {
 
 export const handleMove = (from: any, to: any) => {
   const promotions = chess.moves({ verbose: true }).filter((m) => m.promotion);
-  console.table(promotions);
 
   if (promotions.some((p) => `${p.from}:${p.to}` === `${from}:${to}`)) {
     const pendingPromotion = { from, to, color: promotions[0].color };
