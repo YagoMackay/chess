@@ -23,8 +23,6 @@ const Board = ({ board, turn }: BoardProps) => {
     <Grid width={'100%'} height={'100%'} templateColumns="repeat(8, 1fr)">
       {currentBoard.map((piece: any, i: any) => (
         <GridItem key={i} height={'75px'} width={'75px'}>
-          {console.log('is Black', isBlack(i))}
-          {console.log('getPost', getPosition(i))}
           <BoardSquare
             piece={piece}
             black={isBlack({ i, turn })}
