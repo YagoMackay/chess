@@ -16,7 +16,6 @@ export type PieceProps = {
   black?: boolean;
 };
 const BoardSquare = ({ piece, black, position }: PieceProps) => {
-  console.log('pos', position);
   const [promotion, setPromotion] = useState(null);
   const [, drop] = useDrop({
     accept: 'piece',
