@@ -14,10 +14,9 @@ const Board = ({ board, turn }: BoardProps) => {
   const [currentBoard, setCurrentBoard] = useState([]);
 
   useEffect(() => {
+    //@ts-ignore
     setCurrentBoard(turn === 'w' ? board.flat() : board.flat().reverse());
   }, [board, turn]);
-
-  console.log('curr', currentBoard);
 
   return (
     <Grid width={'100%'} height={'100%'} templateColumns="repeat(8, 1fr)">
