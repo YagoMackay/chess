@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js';
+import { fromRef } from 'rxfire/firestore';
 import { BehaviorSubject, map } from 'rxjs';
 import { auth } from './firebase';
 
@@ -8,44 +9,17 @@ export let gameSubject;
 let member;
 let gameRef;
 
-export const move = (from: string, to: string, promotion?: any) => {
-  try {
-    let tempMove = { from, to, promotion };
-    if (promotion) {
-      tempMove.promotion = promotion;
-    }
-    const legalMove = chess.move(tempMove);
-    if (legalMove) {
-      updateGame();
-    }
-  } catch (error) {
-    console.error(`Invalid move: ${JSON.stringify({ from, to })}`);
-  }
-};
-
-export const handleMove = (from: any, to: any) => {
-  const promotions = chess.moves({ verbose: true }).filter((m) => m.promotion);
-
-  if (promotions.some((p) => `${p.from}:${p.to}` === `${from}:${to}`)) {
-    const pendingPromotion = { from, to, color: promotions[0].color };
-    updateGame(pendingPromotion);
-  }
-  //@ts-ignore
-  const { pendingPromotion } = gameSubject.getValue();
-
-  if (!pendingPromotion) {
-    move(from, to);
-  }
-};
-
 export const initGame = async (gameRefFb?: any) => {
-  const currentUser = auth;
-  //this needs to be changed, we are getting undefined
-  gameSubject = new BehaviorSubject({ board: chess.board() });
-  console.log('SHOULD BE HERE');
+  const currentUser = auth.currentUser;
+
   if (gameRefFb) {
-    const initialGame = await gameRefFb.get().then((doc) => doc.data());
-    console.log('init', initialGame);
+    console.log('gameRef', gameRefFb);
+    const doc = await gameRefFb.get();
+
+    console.log('doc', doc);
+
+    const initialGame = doc.data();
+
     if (!initialGame) {
       return 'notfound';
     }
@@ -67,7 +41,7 @@ export const initGame = async (gameRefFb?: any) => {
 
     chess.reset();
 
-    gameSubject = fromDocRef(gameRefFb).pipe(
+    gameSubject = fromRef(gameRefFb).pipe(
       map((gameDoc) => {
         const game = gameDoc.data();
         const { pendingPromotion, gameData, ...restOfGame } = game;
@@ -98,6 +72,36 @@ export const initGame = async (gameRefFb?: any) => {
       chess.load(savedGame);
     }
     updateGame();
+  }
+};
+
+export const move = (from: string, to: string, promotion?: any) => {
+  try {
+    let tempMove = { from, to, promotion };
+    if (promotion) {
+      tempMove.promotion = promotion;
+    }
+    const legalMove = chess.move(tempMove);
+    if (legalMove) {
+      updateGame();
+    }
+  } catch (error) {
+    console.error(`Invalid move: ${JSON.stringify({ from, to })}`);
+  }
+};
+
+export const handleMove = (from: any, to: any) => {
+  const promotions = chess.moves({ verbose: true }).filter((m) => m.promotion);
+
+  if (promotions.some((p) => `${p.from}:${p.to}` === `${from}:${to}`)) {
+    const pendingPromotion = { from, to, color: promotions[0].color };
+    updateGame(pendingPromotion);
+  }
+  //@ts-ignore
+  const { pendingPromotion } = gameSubject.getValue();
+
+  if (!pendingPromotion) {
+    move(from, to);
   }
 };
 

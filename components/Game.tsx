@@ -17,20 +17,45 @@ export default function Game() {
   const [result, setResult] = useState();
   const [turn, setTurn] = useState();
   const router = useRouter();
+  const [initResult, setInitResult] = useState(null);
+  const [loading, setLoading] = useState(true);
   const { id: gameId } = router.query;
 
   useEffect(() => {
-    initGame(gameId !== 'local' ? doc(db, 'game', gameId) : null);
+    let subscribe;
+    const init = async () => {
+      console.log('gameId', gameId);
+      console.log('db', db);
+      const res = initGame(
+        gameId !== 'local' ? doc(db, 'game', gameId as string) : null
+      );
+      console.log('res', res);
+      setInitResult(res);
+      setLoading(false);
+      subscribe = gameSubject.subscribe((game: any) => {
+        setBoard(game.board);
+        setIsGameOver(game.isGameOver);
+        setResult(game.result);
+        setTurn(game.turn);
+      });
+    };
 
-    console.log('game', gameSubject);
-    const subscribe = gameSubject.subscribe((game: any) => {
-      setBoard(game.board);
-      setIsGameOver(game.isGameOver);
-      setResult(game.result);
-      setTurn(game.turn);
-    });
-    return () => subscribe.unsubscribe();
-  }, []);
+    init();
+
+    return () => subscribe && subscribe.unsubscribe();
+  }, [gameId]);
+
+  if (loading) {
+    return 'loading';
+  }
+
+  if (initResult === 'notfound') {
+    return 'Game not found';
+  }
+
+  if (initResult === 'intruder') {
+    return 'The game is full';
+  }
 
   return (
     <>
