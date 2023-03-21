@@ -2,7 +2,6 @@ import { auth } from '@/lib/firebase';
 import { gameSubject, initGame } from '@/lib/Game';
 import { Box, Center, Container, Heading } from '@chakra-ui/layout';
 import { Button, Input } from '@chakra-ui/react';
-import { signInAnonymously } from 'firebase/auth';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
@@ -15,11 +14,6 @@ export default function UserForm() {
   const router = useRouter();
   const [name, setName] = useState('');
 
-  // async function handleSubmit(e: any) {
-  //   e.preventDefault();
-  //   localStorage.setItem('userName', name);
-  // }
-
   useEffect(() => {
     initGame();
     const subscribe = gameSubject.subscribe((game: any) => {
@@ -31,13 +25,13 @@ export default function UserForm() {
     return () => subscribe.unsubscribe();
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     try {
       e.preventDefault();
       localStorage.setItem('userName', name);
-      signInAnonymously(auth);
+      await auth.signInAnonymously();
       router.push('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.log(error.message);
     }
   };

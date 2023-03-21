@@ -1,53 +1,69 @@
 import { Chess } from 'chess.js';
-import { fromRef } from 'rxfire/firestore';
+import firebase from 'firebase/app';
+import 'firebase/firestore';
+import { fromDocRef } from 'rxfire/firestore';
 import { BehaviorSubject, map } from 'rxjs';
 import { auth } from './firebase';
 
+interface Member {
+  uid: string;
+  name: string;
+  piece: string;
+  creator: boolean;
+}
+
 const chess = new Chess();
 
-export let gameSubject;
-let member;
-let gameRef;
+export let gameSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
-export const initGame = async (gameRefFb?: any) => {
-  const currentUser = auth.currentUser;
+let member: any;
+let gameRef: any;
+
+export async function initGame(gameRefFb?: any) {
+  const { currentUser } = auth;
 
   if (gameRefFb) {
-    console.log('gameRef', gameRefFb);
-    const doc = await gameRefFb.get();
+    gameRef = gameRefFb;
 
-    console.log('doc', doc);
-
-    const initialGame = doc.data();
-
+    const initialGame: { member: Member[]; status: string } | undefined =
+      await gameRefFb
+        .get()
+        .then((doc: firebase.firestore.QueryDocumentSnapshot) => doc.data());
     if (!initialGame) {
       return 'notfound';
     }
 
-    const creator = initialGame.members.find((m) => m.creator === true);
-    if (initialGame.status === 'waiting' && creator.uid !== currentUser.uid) {
+    const creator = initialGame.member.find((m: Member) => m.creator === true);
+
+    if (initialGame.status === 'waiting' && creator.uid !== currentUser?.uid) {
       const currUser = {
-        uid: currentUser.uid,
+        uid: currentUser?.uid,
         name: localStorage.getItem('userName'),
         piece: creator.piece === 'w' ? 'b' : 'w',
       };
-      const updatedMembers = [...initialGame.members, currUser];
-      await gameRefFb.update({ members: updatedMembers, status: 'ready' });
+
+      const updatedMembers = [...initialGame.member, currUser];
+
+      await gameRefFb.update({ member: updatedMembers, status: 'ready' });
     } else if (
-      !initialGame.members.map((m) => m.uid).includes(currentUser.uid)
+      !initialGame.member.map((m: Member) => m.uid).includes(currentUser?.uid)
     ) {
       return 'intruder';
     }
-
     chess.reset();
 
-    gameSubject = fromRef(gameRefFb).pipe(
+    //not sure how to fix this
+    //@ts-ignore
+    gameSubject = fromDocRef(gameRefFb).pipe(
       map((gameDoc) => {
         const game = gameDoc.data();
-        const { pendingPromotion, gameData, ...restOfGame } = game;
-        member = game.members.find((m) => m.uid === currentUser.uid);
-        const oponent = game.members.find((m) => m.uid !== currentUser.uid);
+        member = game?.member.find((m: Member) => m.uid === currentUser?.uid);
 
+        const { pendingPromotion, gameData, ...restOfGame }: any = game;
+
+        const oponent = game?.member.find(
+          (m: Member) => m.uid !== currentUser?.uid
+        );
         if (gameData) {
           chess.load(gameData);
         }
@@ -56,7 +72,7 @@ export const initGame = async (gameRefFb?: any) => {
           board: chess.board(),
           pendingPromotion,
           isGameOver,
-          turn: member.piece,
+          position: member.piece,
           member,
           oponent,
           result: isGameOver ? getGameResult() : null,
@@ -66,61 +82,86 @@ export const initGame = async (gameRefFb?: any) => {
     );
   } else {
     gameRef = null;
-    gameSubject = new BehaviorSubject({ board: chess.board() });
+
     const savedGame = localStorage.getItem('savedGame');
     if (savedGame) {
       chess.load(savedGame);
     }
     updateGame();
   }
-};
-
+}
 export const move = (from: string, to: string, promotion?: any) => {
   try {
     let tempMove = { from, to, promotion };
     if (promotion) {
       tempMove.promotion = promotion;
     }
-    const legalMove = chess.move(tempMove);
-    if (legalMove) {
-      updateGame();
+    if (gameRef) {
+      if (member.piece === chess.turn()) {
+        const legalMove = chess.move(tempMove);
+        if (legalMove) {
+          updateGame();
+        }
+      }
+    } else {
+      const legalMove = chess.move(tempMove);
+      if (legalMove) {
+        updateGame();
+      }
     }
   } catch (error) {
     console.error(`Invalid move: ${JSON.stringify({ from, to })}`);
   }
 };
 
-export const handleMove = (from: any, to: any) => {
+export function handleMove(from: string, to: string) {
   const promotions = chess.moves({ verbose: true }).filter((m) => m.promotion);
-
+  console.table(promotions);
+  let pendingPromotion;
   if (promotions.some((p) => `${p.from}:${p.to}` === `${from}:${to}`)) {
-    const pendingPromotion = { from, to, color: promotions[0].color };
+    pendingPromotion = { from, to, color: promotions[0].color };
     updateGame(pendingPromotion);
   }
-  //@ts-ignore
-  const { pendingPromotion } = gameSubject.getValue();
 
   if (!pendingPromotion) {
     move(from, to);
   }
+}
+
+export const resetGame = async () => {
+  if (gameRef) {
+    await updateGame(null, true);
+    chess.reset();
+  } else {
+    chess.reset();
+    updateGame();
+  }
 };
 
-export const resetGame = () => {
-  chess.reset();
-  updateGame();
-};
-
-export const updateGame = (pendingPromotion?: any) => {
+async function updateGame(pendingPromotion?: any, reset?: any) {
   const isGameOver = chess.isGameOver();
-  const newGame = {
-    board: chess.board(),
-    pendingPromotion,
-    isGameOver,
-    turn: chess.turn(),
-    result: isGameOver ? getGameResult() : null,
-  };
-  gameSubject.next(newGame);
-};
+  if (gameRef) {
+    const updatedData = {
+      gameData: chess.fen(),
+      pendingPromotion: pendingPromotion || null,
+    };
+
+    if (reset) {
+      updatedData.status = 'over';
+    }
+    await gameRef.update(updatedData);
+  } else {
+    const newGame = {
+      board: chess.board(),
+      pendingPromotion,
+      isGameOver,
+      position: chess.turn(),
+      result: isGameOver ? getGameResult() : null,
+    };
+    localStorage.setItem('savedGame', chess.fen());
+    gameSubject.next(newGame);
+  }
+}
 
 export const getGameResult = () => {
   if (chess.isCheckmate()) {

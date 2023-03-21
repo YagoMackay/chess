@@ -26,11 +26,13 @@ const BoardSquare = ({ piece, black, position }: PieceProps) => {
     },
   });
   useEffect(() => {
-    const subscribe = gameSubject.subscribe(({ pendingPromotion }: any) =>
+    const subscribe = gameSubject.subscribe((param: any) => {
+      const { pendingPromotion } = param || {}; // check if param is null before destructuring
       pendingPromotion && pendingPromotion.to === position
         ? setPromotion(pendingPromotion)
-        : setPromotion(null)
-    );
+        : setPromotion(null);
+    });
+
     return () => subscribe.unsubscribe();
   }, [position]);
 

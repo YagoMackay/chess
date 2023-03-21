@@ -12,7 +12,6 @@ import {
   ModalOverlay,
   useDisclosure,
 } from '@chakra-ui/react';
-import { doc, setDoc } from 'firebase/firestore';
 
 export default function Dashboard() {
   const currentUser = auth.currentUser;
@@ -31,13 +30,15 @@ export default function Dashboard() {
       name: localStorage.getItem('userName'),
       creator: true,
     };
+    console.log('member', member);
     const game = {
       status: 'waiting',
       member: [member],
       gameId: `${Math.random().toString(36).substring(2, 9)}_${Date.now()}`,
     };
 
-    await setDoc(doc(db, 'game', game.gameId), game);
+    await db.collection('game').doc(game.gameId).set(game);
+
     router.push(`/game/${game.gameId}`);
   };
   const newGameOptions = [
@@ -81,6 +82,7 @@ export default function Dashboard() {
               <Box key={value} display="flex">
                 <Button
                   colorScheme={'gray'}
+                  //@ts-ignore
                   onClick={() => startOnlineGame(value)}
                 >
                   {label}

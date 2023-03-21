@@ -6,15 +6,17 @@ import BoardSquare from './BoardSquare';
 
 //type for an object?
 type BoardProps = {
-  board: { square: Square; type: PieceSymbol; color: Color };
+  board: { square: Square; type: PieceSymbol; color: Color }[];
   turn: Color;
 };
 
 const Board = ({ board, turn }: BoardProps) => {
-  const [currentBoard, setCurrentBoard] = useState([]);
+  const [currentBoard, setCurrentBoard] = useState<
+    { square: Square; type: PieceSymbol; color: Color }[]
+  >([]);
 
+  // !! Why do I need all these types for flat method?
   useEffect(() => {
-    //@ts-ignore
     setCurrentBoard(turn === 'w' ? board.flat() : board.flat().reverse());
   }, [board, turn]);
 
