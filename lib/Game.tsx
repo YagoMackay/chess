@@ -1,64 +1,111 @@
 import { Chess } from 'chess.js';
-import { fromRef } from 'rxfire/firestore';
+import firebase from 'firebase/app';
+import 'firebase/firestore';
+import { fromDocRef } from 'rxfire/firestore';
 import { BehaviorSubject, map } from 'rxjs';
 import { auth } from './firebase';
 
+interface Member {
+  uid: string;
+  name: string;
+  piece: string;
+  creator: boolean;
+}
+
 const chess = new Chess();
 
-export let gameSubject;
-let member;
-let gameRef;
+export let gameSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
-export const initGame = async (gameRefFb?: any) => {
-  const currentUser = auth.currentUser;
+let member: any;
+let gameRef: any;
 
+/**
+ * Initializes the game, loading game data from Firestore if a game reference is provided.
+ * If not, the game will be initialized with a new chess board and the game state will be updated.
+ * @param gameRefFb Optional reference to the game in Firestore
+ * @returns Returns a string indicating the current state of the game initialization process
+ */
+export async function initGame(gameRefFb?: any) {
+  // Get the currently signed-in user from Firebase authentication
+  const { currentUser } = auth;
+
+  // If a game reference is provided, use it to load the game data from Firestore
   if (gameRefFb) {
-    console.log('gameRef', gameRefFb);
-    const doc = await gameRefFb.get();
+    // Store the game reference for later use
+    gameRef = gameRefFb;
 
-    console.log('doc', doc);
+    // Load the game data from Firestore
+    const initialGame: { member: Member[]; status: string } | undefined =
+      await gameRefFb
+        .get()
+        .then((doc: firebase.firestore.QueryDocumentSnapshot) => doc.data());
 
-    const initialGame = doc.data();
-
+    // If the game data does not exist, return 'notfound'
     if (!initialGame) {
       return 'notfound';
     }
 
-    const creator = initialGame.members.find((m) => m.creator === true);
-    if (initialGame.status === 'waiting' && creator.uid !== currentUser.uid) {
+    // Find the creator of the game
+    const creator = initialGame.member.find((m: Member) => m.creator === true);
+
+    // If the game status is 'waiting' and the current user is not the creator, add the current user to the game
+    if (initialGame.status === 'waiting' && creator?.uid !== currentUser?.uid) {
+      // Create a new member object for the current user
       const currUser = {
-        uid: currentUser.uid,
+        uid: currentUser?.uid,
         name: localStorage.getItem('userName'),
-        piece: creator.piece === 'w' ? 'b' : 'w',
+        piece: creator?.piece === 'w' ? 'b' : 'w',
       };
-      const updatedMembers = [...initialGame.members, currUser];
-      await gameRefFb.update({ members: updatedMembers, status: 'ready' });
-    } else if (
-      !initialGame.members.map((m) => m.uid).includes(currentUser.uid)
+
+      // Add the current user to the game members and update the game status to 'ready'
+      const updatedMembers = [...initialGame.member, currUser];
+
+      await gameRefFb.update({ member: updatedMembers, status: 'ready' });
+    }
+    // If the current user is not a member of the game, return 'intruder'
+    else if (
+      !initialGame.member.map((m: Member) => m.uid).includes(currentUser?.uid)
     ) {
       return 'intruder';
     }
 
     chess.reset();
 
-    gameSubject = fromRef(gameRefFb).pipe(
+    // Create a new gameSubject and use the game reference to listen for changes in the game data
+    // This allows the game state to be automatically updated when changes occur in Firestore
+    //@ts-ignore
+    gameSubject = fromDocRef(gameRefFb).pipe(
+      // Map the game data to the game state object used by the application
       map((gameDoc) => {
         const game = gameDoc.data();
-        const { pendingPromotion, gameData, ...restOfGame } = game;
-        member = game.members.find((m) => m.uid === currentUser.uid);
-        const oponent = game.members.find((m) => m.uid !== currentUser.uid);
 
+        // Find the member object for the current user
+        member = game?.member.find((m: Member) => m.uid === currentUser?.uid);
+
+        // Extract the gameData and pendingPromotion properties from the game object
+        const { pendingPromotion, gameData, ...restOfGame }: any = game;
+
+        // Find the opponent's member object
+        const opponent = game?.member.find(
+          (m: Member) => m.uid !== currentUser?.uid
+        );
+
+        // Load the game data into the chess engine if it exists
         if (gameData) {
           chess.load(gameData);
         }
+
+        // Determine if the game is over
         const isGameOver = chess.isGameOver();
+
+        // Return the game state object
         return {
           board: chess.board(),
           pendingPromotion,
           isGameOver,
-          turn: member.piece,
+          position: member.piece,
           member,
-          oponent,
+          opponent,
           result: isGameOver ? getGameResult() : null,
           ...restOfGame,
         };
@@ -66,61 +113,99 @@ export const initGame = async (gameRefFb?: any) => {
     );
   } else {
     gameRef = null;
-    gameSubject = new BehaviorSubject({ board: chess.board() });
+
     const savedGame = localStorage.getItem('savedGame');
     if (savedGame) {
       chess.load(savedGame);
     }
     updateGame();
   }
-};
-
+}
 export const move = (from: string, to: string, promotion?: any) => {
   try {
     let tempMove = { from, to, promotion };
     if (promotion) {
       tempMove.promotion = promotion;
     }
-    const legalMove = chess.move(tempMove);
-    if (legalMove) {
-      updateGame();
+    if (gameRef) {
+      if (member.piece === chess.turn()) {
+        const legalMove = chess.move(tempMove);
+        if (legalMove) {
+          updateGame();
+        }
+      }
+    } else {
+      const legalMove = chess.move(tempMove);
+      if (legalMove) {
+        updateGame();
+      }
     }
   } catch (error) {
     console.error(`Invalid move: ${JSON.stringify({ from, to })}`);
   }
 };
 
-export const handleMove = (from: any, to: any) => {
+export function handleMove(from: string, to: string) {
   const promotions = chess.moves({ verbose: true }).filter((m) => m.promotion);
 
+  let pendingPromotion;
   if (promotions.some((p) => `${p.from}:${p.to}` === `${from}:${to}`)) {
-    const pendingPromotion = { from, to, color: promotions[0].color };
+    pendingPromotion = { from, to, color: promotions[0].color };
     updateGame(pendingPromotion);
   }
-  //@ts-ignore
-  const { pendingPromotion } = gameSubject.getValue();
 
   if (!pendingPromotion) {
     move(from, to);
   }
+}
+
+export const resetGame = async () => {
+  if (gameRef) {
+    await updateGame(null, true);
+    chess.reset();
+  } else {
+    chess.reset();
+    updateGame();
+  }
 };
 
-export const resetGame = () => {
-  chess.reset();
-  updateGame();
-};
-
-export const updateGame = (pendingPromotion?: any) => {
+async function updateGame(pendingPromotion?: any, reset?: any) {
   const isGameOver = chess.isGameOver();
-  const newGame = {
-    board: chess.board(),
-    pendingPromotion,
-    isGameOver,
-    turn: chess.turn(),
-    result: isGameOver ? getGameResult() : null,
-  };
-  gameSubject.next(newGame);
-};
+
+  // If a game reference exists, update the game data in Firestore
+  if (gameRef) {
+    // Prepare the updated data to be stored in Firestore
+    const updatedData = {
+      gameData: chess.fen(),
+      pendingPromotion: pendingPromotion || null,
+    };
+
+    // If the reset flag is true, update the game status to 'over'
+    if (reset) {
+      updatedData.status = 'over';
+    }
+
+    // Update the game data in Firestore
+    await gameRef.update(updatedData);
+  }
+  // If no game reference exists, save the game data locally and update the game subject
+  else {
+    // Prepare the game data to be saved locally and sent to the game subject
+    const newGame = {
+      board: chess.board(),
+      pendingPromotion,
+      isGameOver,
+      position: chess.turn(),
+      result: isGameOver ? getGameResult() : null,
+    };
+
+    // Save the game data locally
+    localStorage.setItem('savedGame', chess.fen());
+
+    // Update the game subject with the new game data
+    gameSubject.next(newGame);
+  }
+}
 
 export const getGameResult = () => {
   if (chess.isCheckmate()) {

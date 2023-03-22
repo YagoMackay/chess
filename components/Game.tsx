@@ -1,15 +1,25 @@
 import Board from '@/components/Board';
 import { db } from '@/lib/firebase';
 import { gameSubject, initGame, resetGame } from '@/lib/Game';
-import { Center, Container, Text } from '@chakra-ui/layout';
-import { Button } from '@chakra-ui/react';
-import { doc } from 'firebase/firestore';
-import { Inter } from 'next/font/google';
+import { Box, Center, Container, Heading, Text } from '@chakra-ui/layout';
+import { Button, Input, Skeleton } from '@chakra-ui/react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 
-const inter = Inter({ subsets: ['latin'] });
+interface Game {
+  opponent: {
+    name: string;
+  };
+  member: {
+    name: string;
+  };
+  board: string[][];
+  isGameOver: boolean;
+  result: string;
+  turn: string;
+  status: string;
+}
 
 export default function Game() {
   const [board, setBoard] = useState([]);
@@ -17,28 +27,44 @@ export default function Game() {
   const [result, setResult] = useState();
   const [turn, setTurn] = useState();
   const router = useRouter();
-  const [initResult, setInitResult] = useState(null);
+  const [initResult, setInitResult] = useState<
+    'notfound' | 'intruder' | undefined
+  >(undefined);
+
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState('');
+  const [game, setGame] = useState<Game>({
+    opponent: { name: '' },
+    member: { name: '' },
+    board: [],
+    isGameOver: false,
+    result: '',
+    turn: '',
+    status: '',
+  });
   const { id: gameId } = router.query;
+  const shareableLink = window.location.href;
 
   useEffect(() => {
-    let subscribe;
-    const init = async () => {
-      console.log('gameId', gameId);
-      console.log('db', db);
-      const res = initGame(
-        gameId !== 'local' ? doc(db, 'game', gameId as string) : null
+    let subscribe: any;
+    async function init() {
+      const res = await initGame(
+        gameId !== 'local' ? db.doc(`game/${gameId}`) : null
       );
-      console.log('res', res);
+
       setInitResult(res);
       setLoading(false);
-      subscribe = gameSubject.subscribe((game: any) => {
-        setBoard(game.board);
-        setIsGameOver(game.isGameOver);
-        setResult(game.result);
-        setTurn(game.turn);
-      });
-    };
+      if (!res) {
+        subscribe = gameSubject.subscribe((game) => {
+          setBoard(game.board);
+          setIsGameOver(game.isGameOver);
+          setResult(game.result);
+          setTurn(game.turn);
+          setStatus(game.status);
+          setGame(game);
+        });
+      }
+    }
 
     init();
 
@@ -46,16 +72,20 @@ export default function Game() {
   }, [gameId]);
 
   if (loading) {
-    return 'loading';
+    return <Skeleton>loading</Skeleton>;
   }
 
   if (initResult === 'notfound') {
-    return 'Game not found';
+    return <Box>Game not found</Box>;
   }
 
   if (initResult === 'intruder') {
-    return 'The game is full';
+    return <Box>The game is full</Box>;
   }
+
+  const copyToClipboard = async () => {
+    await navigator.clipboard.writeText(shareableLink);
+  };
 
   return (
     <>
@@ -66,66 +96,132 @@ export default function Game() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <Container
-        minHeight={'100vh'}
-        display={'flex'}
-        background={'rgb(34, 34, 34)'}
-        alignItems={'center'}
-        justifyContent={'center'}
-      >
-        {isGameOver && (
-          <Text
-            style={{
-              textOrientation: 'upright',
-              writingMode: 'vertical-lr',
-              fontFamily: 'sans-serif',
-            }}
-            p={'10px'}
-            color="white"
-          >
-            GAME OVER
-            <Button
-              p="10px"
+      <Container padding={0} margin={0}>
+        <Box
+          width="100vw"
+          height="100vh"
+          display={'flex'}
+          background={'rgb(34, 34, 34)'}
+          alignItems={'center'}
+          justifyContent={'center'}
+          position="relative"
+        >
+          {isGameOver && (
+            <Text
+              style={{
+                textOrientation: 'upright',
+                writingMode: 'vertical-lr',
+                fontFamily: 'sans-serif',
+              }}
+              p={'10px'}
               color="white"
-              mt="20px"
-              cursor={'pointer'}
-              background="rgb(63,63,63)"
-              border={'2px solid white'}
-              borderRadius="10px"
-              onClick={resetGame}
             >
-              <span
+              GAME OVER
+              <Button
+                p="10px"
+                color="white"
+                mt="20px"
+                cursor={'pointer'}
+                background="rgb(63,63,63)"
+                border={'2px solid white'}
+                borderRadius="10px"
+                onClick={async () => {
+                  await resetGame;
+                  router.push('/dashboard');
+                }}
+              >
+                <span
+                  style={{
+                    textOrientation: 'upright',
+                    writingMode: 'vertical-lr',
+                    fontFamily: 'sans-serif',
+                  }}
+                >
+                  New Game
+                </span>
+              </Button>
+            </Text>
+          )}
+          <Box display={'flex'} flexDir="column">
+            {game.opponent && game.opponent.name && (
+              <Box
+                backgroundColor="cornflowerblue"
+                padding={'10px'}
+                borderRadius="10px"
+                width={'20%'}
+                marginLeft={'auto'}
+              >
+                <Heading size="md" color="white" textAlign={'center'}>
+                  {game.opponent.name}
+                </Heading>
+              </Box>
+            )}
+
+            <Center width={'600px'} height={'600px'}>
+              <Board board={board} turn={turn}></Board>
+            </Center>
+            {game.member && game.member.name && (
+              <Box
+                backgroundColor="teal"
+                padding={'10px'}
+                borderRadius="10px"
+                width="20%"
+              >
+                <Heading size="md" color="white" textAlign={'center'}>
+                  {game.member.name}
+                </Heading>
+              </Box>
+            )}
+          </Box>
+
+          {result && (
+            <>
+              <Text
                 style={{
                   textOrientation: 'upright',
                   writingMode: 'vertical-lr',
                   fontFamily: 'sans-serif',
                 }}
+                p={'10px'}
+                color="white"
               >
-                New Game
-              </span>
-            </Button>
-          </Text>
-        )}
-        <Center width={'600px'} height={'600px'}>
-          {
-            //@ts-ignore
-
-            <Board board={board} turn={turn}></Board>
-          }
-        </Center>
-        {result && (
-          <Text
-            style={{
-              textOrientation: 'upright',
-              writingMode: 'vertical-lr',
-              fontFamily: 'sans-serif',
-            }}
-            p={'10px'}
-            color="white"
-          >
-            {result}
-          </Text>
-        )}
+                {result}
+              </Text>
+            </>
+          )}
+          {status === 'waiting' && (
+            <Container
+              position={'absolute'}
+              width={'500px'}
+              bottom={'0'}
+              backgroundColor={'cornflowerblue'}
+              borderRadius={'10px'}
+            >
+              <Heading
+                color="white"
+                size="md"
+                paddingTop={5}
+                textAlign="center"
+              >
+                Share this link with your opponent
+              </Heading>
+              <Box display={'flex'} padding={5}>
+                <Input
+                  type="text"
+                  readOnly
+                  value={shareableLink}
+                  placeholder="Filled"
+                  size="md"
+                  bg="white"
+                  color="black"
+                ></Input>
+                <Button colorScheme={'teal'} onClick={copyToClipboard}>
+                  Copy
+                </Button>
+              </Box>
+            </Container>
+          )}
+        </Box>
       </Container>
     </>
   );

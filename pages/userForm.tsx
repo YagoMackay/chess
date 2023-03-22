@@ -2,7 +2,6 @@ import { auth } from '@/lib/firebase';
 import { gameSubject, initGame } from '@/lib/Game';
 import { Box, Center, Container, Heading } from '@chakra-ui/layout';
 import { Button, Input } from '@chakra-ui/react';
-import { signInAnonymously } from 'firebase/auth';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
@@ -15,14 +14,9 @@ export default function UserForm() {
   const router = useRouter();
   const [name, setName] = useState('');
 
-  // async function handleSubmit(e: any) {
-  //   e.preventDefault();
-  //   localStorage.setItem('userName', name);
-  // }
-
   useEffect(() => {
     initGame();
-    const subscribe = gameSubject.subscribe((game: any) => {
+    const subscribe = gameSubject.subscribe((game) => {
       setBoard(game.board);
       setIsGameOver(game.isGameOver);
       setResult(game.result);
@@ -31,13 +25,13 @@ export default function UserForm() {
     return () => subscribe.unsubscribe();
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     try {
       e.preventDefault();
       localStorage.setItem('userName', name);
-      signInAnonymously(auth);
+      await auth.signInAnonymously();
       router.push('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.log(error.message);
     }
   };
@@ -51,12 +45,13 @@ export default function UserForm() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <Container>
+      <Container paddingTop={'20px'}>
         <Center display={'flex'} flexDir={'column'}>
           <Heading
             style={{
               fontFamily: 'sans-serif',
             }}
+            padding={'5px'}
           >
             Enter your name to start
           </Heading>
@@ -71,10 +66,16 @@ export default function UserForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              padding={'5px'}
             />
           </Box>
 
-          <Button colorScheme={'blue'} size="md" type="submit">
+          <Button
+            colorScheme={'blue'}
+            size="md"
+            type="submit"
+            marginTop={'5px'}
+          >
             Start
           </Button>
         </Center>
