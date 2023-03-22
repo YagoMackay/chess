@@ -16,7 +16,7 @@ export default function UserForm() {
 
   useEffect(() => {
     initGame();
-    const subscribe = gameSubject.subscribe((game: any) => {
+    const subscribe = gameSubject.subscribe((game) => {
       setBoard(game.board);
       setIsGameOver(game.isGameOver);
       setResult(game.result);
@@ -25,7 +25,7 @@ export default function UserForm() {
     return () => subscribe.unsubscribe();
   }, []);
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     try {
       e.preventDefault();
       localStorage.setItem('userName', name);
@@ -45,12 +45,13 @@ export default function UserForm() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <Container>
+      <Container paddingTop={'20px'}>
         <Center display={'flex'} flexDir={'column'}>
           <Heading
             style={{
               fontFamily: 'sans-serif',
             }}
+            padding={'5px'}
           >
             Enter your name to start
           </Heading>
@@ -65,10 +66,16 @@ export default function UserForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              padding={'5px'}
             />
           </Box>
 
-          <Button colorScheme={'blue'} size="md" type="submit">
+          <Button
+            colorScheme={'blue'}
+            size="md"
+            type="submit"
+            marginTop={'5px'}
+          >
             Start
           </Button>
         </Center>
