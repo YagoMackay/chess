@@ -2,7 +2,7 @@ import Board from '@/components/Board';
 import { db } from '@/lib/firebase';
 import { gameSubject, initGame, resetGame } from '@/lib/Game';
 import { Box, Center, Container, Heading, Text } from '@chakra-ui/layout';
-import { Button, Input } from '@chakra-ui/react';
+import { Button, Input, Skeleton } from '@chakra-ui/react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
@@ -72,15 +72,15 @@ export default function Game() {
   }, [gameId]);
 
   if (loading) {
-    return 'loading';
+    return <Skeleton>loading</Skeleton>;
   }
 
   if (initResult === 'notfound') {
-    return 'Game not found';
+    return <Box>Game not found</Box>;
   }
 
   if (initResult === 'intruder') {
-    return 'The game is full';
+    return <Box>The game is full</Box>;
   }
 
   const copyToClipboard = async () => {

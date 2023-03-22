@@ -10,6 +10,12 @@ type BoardProps = {
   turn: Color;
 };
 
+type PieceProps = {
+  square: string;
+  type: string;
+  color: string;
+};
+
 const Board = ({ board, turn }: BoardProps) => {
   const [currentBoard, setCurrentBoard] = useState<
     { square: Square; type: PieceSymbol; color: Color }[]
@@ -22,7 +28,7 @@ const Board = ({ board, turn }: BoardProps) => {
 
   return (
     <Grid width={'100%'} height={'100%'} templateColumns="repeat(8, 1fr)">
-      {currentBoard.map((piece: any, i: any) => (
+      {currentBoard.map((piece: PieceProps, i: number) => (
         <GridItem key={i} height={'75px'} width={'75px'}>
           <BoardSquare
             piece={piece}

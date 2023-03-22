@@ -9,6 +9,5 @@ export default function GamePage() {
     return <div>Loading...</div>;
   }
 
-  //@ts-ignore
   return <Game />;
 }

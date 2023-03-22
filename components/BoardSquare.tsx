@@ -15,18 +15,24 @@ export type PieceProps = {
   position: string;
   black?: boolean;
 };
+
+interface DragItem {
+  id: string;
+  type: string;
+}
+
 const BoardSquare = ({ piece, black, position }: PieceProps) => {
   const [promotion, setPromotion] = useState(null);
   const [, drop] = useDrop({
     accept: 'piece',
-    drop: (item: any) => {
+    drop: (item: DragItem) => {
       const [fromPosition] = item.id.split('_');
 
       handleMove(fromPosition, position);
     },
   });
   useEffect(() => {
-    const subscribe = gameSubject.subscribe((param: any) => {
+    const subscribe = gameSubject.subscribe((param) => {
       const { pendingPromotion } = param || {}; // check if param is null before destructuring
       pendingPromotion && pendingPromotion.to === position
         ? setPromotion(pendingPromotion)

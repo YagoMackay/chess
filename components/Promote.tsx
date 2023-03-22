@@ -14,7 +14,6 @@ type PromotionProps = {
 const promotionPieces = ['r', 'n', 'b', 'q'];
 const Promote = ({ promotion: { from, to, color } }: PromotionProps) => {
   return (
-    //@ts-ignore
     <Grid
       w={'100%'}
       h={'100%'}
