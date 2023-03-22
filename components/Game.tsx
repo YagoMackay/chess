@@ -2,7 +2,7 @@ import Board from '@/components/Board';
 import { db } from '@/lib/firebase';
 import { gameSubject, initGame, resetGame } from '@/lib/Game';
 import { Box, Center, Container, Heading, Text } from '@chakra-ui/layout';
-import { Button, Input, Skeleton } from '@chakra-ui/react';
+import { Button, ButtonGroup, Input, Skeleton } from '@chakra-ui/react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
@@ -117,29 +117,38 @@ export default function Game() {
               color="white"
             >
               GAME OVER
-              <Button
-                p="10px"
-                color="white"
-                mt="20px"
-                cursor={'pointer'}
-                background="rgb(63,63,63)"
-                border={'2px solid white'}
-                borderRadius="10px"
-                onClick={async () => {
-                  await resetGame;
-                  router.push('/dashboard');
-                }}
-              >
-                <span
+              <ButtonGroup>
+                <Button
+                  p="10px"
+                  color="white"
+                  mt="20px"
+                  cursor={'pointer'}
+                  background="rgb(63,63,63)"
+                  border={'2px solid white'}
+                  borderRadius="10px"
+                  onClick={async () => {
+                    await resetGame;
+                    router.push('/dashboard');
+                  }}
                   style={{
                     textOrientation: 'upright',
                     writingMode: 'vertical-lr',
                     fontFamily: 'sans-serif',
                   }}
                 >
+                  {' '}
                   New Game
-                </span>
-              </Button>
+                  {/* <Text
+                    style={{
+                      textOrientation: 'upright',
+                      writingMode: 'vertical-lr',
+                      fontFamily: 'sans-serif',
+                    }}
+                  >
+                    New Game
+                  </Text> */}
+                </Button>
+              </ButtonGroup>
             </Text>
           )}
           <Box display={'flex'} flexDir="column">
