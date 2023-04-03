@@ -1,11 +1,15 @@
 import Board from '@/components/Board';
-import { db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { gameSubject, initGame, resetGame } from '@/lib/Game';
 import { Box, Center, Container, Heading, Text } from '@chakra-ui/layout';
 import { Button, ButtonGroup, Input, Skeleton } from '@chakra-ui/react';
+import { User } from '@firebase/auth-types';
+import { DocumentReference } from '@firebase/firestore-types';
+import 'firebase/firestore';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
+import { Subscription } from 'rxjs';
 
 interface Game {
   opponent: {
@@ -26,10 +30,15 @@ export default function Game() {
   const [isGameOver, setIsGameOver] = useState();
   const [result, setResult] = useState();
   const [turn, setTurn] = useState();
+  const [user, setUser] = useState<User | null>();
   const router = useRouter();
   const [initResult, setInitResult] = useState<
     'notfound' | 'intruder' | undefined
   >(undefined);
+
+  auth.onAuthStateChanged((currentUser) => {
+    setUser(currentUser);
+  });
 
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
@@ -45,31 +54,35 @@ export default function Game() {
   const { id: gameId } = router.query;
   const shareableLink = window.location.href;
 
-  useEffect(() => {
-    let subscribe: any;
-    async function init() {
-      const res = await initGame(
-        gameId !== 'local' ? db.doc(`game/${gameId}`) : null
-      );
+  let gameRef: DocumentReference | null = null;
+  if (gameId !== 'local') {
+    gameRef = db.doc(`game/${gameId}`);
+  }
+  let subscribe: Subscription;
+  async function init() {
+    const res = await initGame(gameRef, user);
 
-      setInitResult(res);
-      setLoading(false);
-      if (!res) {
-        subscribe = gameSubject.subscribe((game) => {
-          setBoard(game.board);
-          setIsGameOver(game.isGameOver);
-          setResult(game.result);
-          setTurn(game.turn);
-          setStatus(game.status);
-          setGame(game);
-        });
-      }
+    setInitResult(res);
+    setLoading(false);
+    if (!res) {
+      subscribe = gameSubject.subscribe((game) => {
+        setBoard(game.board);
+        setIsGameOver(game.isGameOver);
+        setResult(game.result);
+        setTurn(game.turn);
+        setStatus(game.status);
+        setGame(game);
+      });
+    }
+  }
+
+  useEffect(() => {
+    if (user) {
+      init();
     }
 
-    init();
-
     return () => subscribe && subscribe.unsubscribe();
-  }, [gameId]);
+  }, [gameId, user]);
 
   if (loading) {
     return <Skeleton>loading</Skeleton>;
