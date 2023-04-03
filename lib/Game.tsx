@@ -3,13 +3,17 @@ import firebase from 'firebase/app';
 import 'firebase/firestore';
 import { fromDocRef } from 'rxfire/firestore';
 import { BehaviorSubject, map } from 'rxjs';
-import { auth } from './firebase';
 
 interface Member {
   uid: string;
   name: string;
   piece: string;
   creator: boolean;
+}
+
+interface InitialGameDetail {
+  member: Member[];
+  status: string;
 }
 
 type ResetFunction = () => void;
@@ -35,10 +39,10 @@ let gameRef: firebase.firestore.DocumentReference | null = null;
  * @returns Returns a string indicating the current state of the game initialization process
  */
 export async function initGame(
-  gameRefFb: firebase.firestore.DocumentReference | null = null
+  gameRefFb: firebase.firestore.DocumentReference | null = null,
+  currentUser: User
 ) {
   // Get the currently signed-in user from Firebase authentication
-  const { currentUser } = auth;
 
   // If a game reference is provided, use it to load the game data from Firestore
   if (gameRefFb) {
@@ -46,12 +50,12 @@ export async function initGame(
     gameRef = gameRefFb;
 
     // Load the game data from Firestore
-    const initialGame: { member: Member[]; status: string } | undefined =
-      await gameRefFb.get().then((doc: firebase.firestore.DocumentSnapshot) => {
+    const initialGame: InitialGameDetail | undefined = await gameRefFb
+      .get()
+      .then((doc: firebase.firestore.DocumentSnapshot) => {
         const data = doc.data();
-        return data
-          ? (data as { member: Member[]; status: string })
-          : undefined;
+
+        return data ? (data as InitialGameDetail) : undefined;
       });
 
     // If the game data does not exist, return 'notfound'
