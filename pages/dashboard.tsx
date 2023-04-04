@@ -70,7 +70,7 @@ export default function Dashboard() {
     <Box>
       <Flex width="100vw" height="100vh">
         <Center backgroundColor={'teal'} width="100%">
-          <Button colorScheme="blue" onClick={local}>
+          <Button colorScheme="blue" onClick={local} isDisabled>
             Play Locally
           </Button>
         </Center>

@@ -14,13 +14,14 @@ type PromotionProps = {
 const promotionPieces = ['r', 'n', 'b', 'q'];
 const Promote = ({ promotion: { from, to, color } }: PromotionProps) => {
   return (
+    //@ts-ignore
     <Grid
       w={'100%'}
       h={'100%'}
       templateRows="repeat(2, 1fr)"
       templateColumns={'repeat(2, 1fr)'}
     >
-      {promotionPieces.map((p, i) => (
+      {promotionPieces.map((p: any, i) => (
         <Box key={i}>
           <Square black={i % 3 === 0}>
             <Box width="50%" height="50%" onClick={() => move(from, to, p)}>

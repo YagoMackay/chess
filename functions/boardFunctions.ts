@@ -2,7 +2,7 @@ import { Color } from 'chess.js';
 
 export interface GetPieceDetailProps {
   i: number;
-  turn: Color;
+  turn?: Color;
 }
 
 export interface XYPosition {

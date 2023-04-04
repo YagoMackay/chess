@@ -22,6 +22,7 @@ interface Game {
   isGameOver: boolean;
   result: string;
   turn: string;
+  position: string;
   status: string;
   player: {
     name: string;
@@ -34,7 +35,7 @@ export default function Game() {
   const [result, setResult] = useState();
   const [position, setPosition] = useState();
   const [turn, setTurn] = useState();
-  const [user, setUser] = useState<User | null>();
+  const [user, setUser] = useState<User | null | undefined>();
   const router = useRouter();
   const [initResult, setInitResult] = useState<
     'notfound' | 'intruder' | undefined
@@ -67,6 +68,10 @@ export default function Game() {
   let subscribe: Subscription;
 
   async function init() {
+    if (!user) {
+      console.log('NO USER FOUND');
+      return undefined;
+    }
     const res = await initGame(gameRef, user);
 
     setInitResult(res);
@@ -92,6 +97,7 @@ export default function Game() {
   }, [gameId, user]);
 
   if (loading) {
+    //@ts-ignore
     return <Skeleton>loading</Skeleton>;
   }
 

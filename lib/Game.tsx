@@ -1,3 +1,4 @@
+import { User } from '@firebase/auth-types';
 import { Chess, Color } from 'chess.js';
 import firebase from 'firebase/app';
 import 'firebase/firestore';
@@ -40,8 +41,8 @@ let gameRef: firebase.firestore.DocumentReference | null = null;
  */
 
 export async function initGame(
-  gameRefFb: firebase.firestore.DocumentReference | null = null,
-  currentUser: User
+  gameRefFb: firebase.firestore.DocumentReference | null | undefined = null,
+  currentUser?: User
 ) {
   // Get the currently signed-in user from Firebase authentication
 
@@ -97,7 +98,7 @@ export async function initGame(
 
     // Create a new gameSubject and use the game reference to listen for changes in the game data
     // This allows the game state to be automatically updated when changes occur in Firestore
-
+    //@ts-ignore
     gameSubject = fromDocRef(gameRefFb).pipe(
       // Map the game data to the game state object used by the application
       map((gameDoc) => {
@@ -202,8 +203,8 @@ export const resetGame = async () => {
 };
 
 async function updateGame(
-  pendingPromotion?: PendingPromotionProps,
-  reset?: ResetFunction
+  pendingPromotion?: PendingPromotionProps | null,
+  reset?: ResetFunction | boolean
 ) {
   const isGameOver = chess.isGameOver();
 

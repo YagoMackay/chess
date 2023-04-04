@@ -7,7 +7,7 @@ import BoardSquare from './BoardSquare';
 //type for an object?
 type BoardProps = {
   board: { square: Square; type: PieceSymbol; color: Color }[];
-  position: Color;
+  position?: Color;
 };
 
 type PieceProps = {
@@ -27,6 +27,7 @@ const Board = ({ board, position: position }: BoardProps) => {
   }, [board, position]);
 
   return (
+    //@ts-ignore
     <Grid width={'100%'} height={'100%'} templateColumns="repeat(8, 1fr)">
       {currentBoard.map((piece: PieceProps, i: number) => (
         <GridItem key={i} height={'75px'} width={'75px'}>
