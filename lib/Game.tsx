@@ -38,6 +38,7 @@ let gameRef: firebase.firestore.DocumentReference | null = null;
  * @param gameRefFb Optional reference to the game in Firestore
  * @returns Returns a string indicating the current state of the game initialization process
  */
+
 export async function initGame(
   gameRefFb: firebase.firestore.DocumentReference | null = null,
   currentUser: User
@@ -113,6 +114,10 @@ export async function initGame(
           (m: Member) => m.uid !== currentUser?.uid
         );
 
+        const player = game?.member.find(
+          (m: Member) => m.uid === currentUser?.uid
+        );
+
         // Load the game data into the chess engine if it exists
         if (gameData) {
           chess.load(gameData);
@@ -129,6 +134,7 @@ export async function initGame(
           position: member.piece,
           member,
           opponent,
+          player,
           result: isGameOver ? getGameResult() : null,
           ...restOfGame,
         };
@@ -136,7 +142,6 @@ export async function initGame(
     );
   } else {
     gameRef = null;
-    gameSubject = new BehaviorSubject(null);
     const savedGame = localStorage.getItem('savedGame');
     if (savedGame) {
       chess.load(savedGame);
@@ -204,6 +209,7 @@ async function updateGame(
 
   // If a game reference exists, update the game data in Firestore
   if (gameRef) {
+    console.log("AGAIN, SHOULDN'T BE HERE");
     // Prepare the updated data to be stored in Firestore
     const updatedData = {
       gameData: chess.fen(),
