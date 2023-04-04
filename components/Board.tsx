@@ -7,7 +7,7 @@ import BoardSquare from './BoardSquare';
 //type for an object?
 type BoardProps = {
   board: { square: Square; type: PieceSymbol; color: Color }[];
-  turn: Color;
+  position: Color;
 };
 
 type PieceProps = {
@@ -16,15 +16,15 @@ type PieceProps = {
   color: string;
 };
 
-const Board = ({ board, turn }: BoardProps) => {
+const Board = ({ board, position: position }: BoardProps) => {
   const [currentBoard, setCurrentBoard] = useState<
     { square: Square; type: PieceSymbol; color: Color }[]
   >([]);
 
   // !! Why do I need all these types for flat method?
   useEffect(() => {
-    setCurrentBoard(turn === 'w' ? board.flat() : board.flat().reverse());
-  }, [board, turn]);
+    setCurrentBoard(position === 'w' ? board.flat() : board.flat().reverse());
+  }, [board, position]);
 
   return (
     <Grid width={'100%'} height={'100%'} templateColumns="repeat(8, 1fr)">
@@ -32,8 +32,8 @@ const Board = ({ board, turn }: BoardProps) => {
         <GridItem key={i} height={'75px'} width={'75px'}>
           <BoardSquare
             piece={piece}
-            black={isBlack({ i, turn })}
-            position={getPosition({ i, turn })}
+            black={isBlack({ i, turn: position })}
+            position={getPosition({ i, turn: position })}
           />
         </GridItem>
       ))}
