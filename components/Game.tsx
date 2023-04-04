@@ -23,12 +23,16 @@ interface Game {
   result: string;
   turn: string;
   status: string;
+  player: {
+    name: string;
+  };
 }
 
 export default function Game() {
   const [board, setBoard] = useState([]);
   const [isGameOver, setIsGameOver] = useState();
   const [result, setResult] = useState();
+  const [position, setPosition] = useState();
   const [turn, setTurn] = useState();
   const [user, setUser] = useState<User | null>();
   const router = useRouter();
@@ -45,10 +49,12 @@ export default function Game() {
   const [game, setGame] = useState<Game>({
     opponent: { name: '' },
     member: { name: '' },
+    player: { name: '' },
     board: [],
     isGameOver: false,
     result: '',
     turn: '',
+    position: '',
     status: '',
   });
   const { id: gameId } = router.query;
@@ -59,6 +65,7 @@ export default function Game() {
     gameRef = db.doc(`game/${gameId}`);
   }
   let subscribe: Subscription;
+
   async function init() {
     const res = await initGame(gameRef, user);
 
@@ -69,7 +76,7 @@ export default function Game() {
         setBoard(game.board);
         setIsGameOver(game.isGameOver);
         setResult(game.result);
-        setTurn(game.turn);
+        setPosition(game.position);
         setStatus(game.status);
         setGame(game);
       });
@@ -180,9 +187,9 @@ export default function Game() {
             )}
 
             <Center width={'600px'} height={'600px'}>
-              <Board board={board} turn={turn}></Board>
+              <Board board={board} position={position}></Board>
             </Center>
-            {game.member && game.member.name && (
+            {game.player && game.player.name && (
               <Box
                 backgroundColor="teal"
                 padding={'10px'}
@@ -190,7 +197,7 @@ export default function Game() {
                 width="20%"
               >
                 <Heading size="md" color="white" textAlign={'center'}>
-                  {game.member.name}
+                  {game.player.name}
                 </Heading>
               </Box>
             )}
