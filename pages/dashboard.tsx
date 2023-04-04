@@ -12,10 +12,19 @@ import {
   ModalOverlay,
   useDisclosure,
 } from '@chakra-ui/react';
+import { useState } from 'react';
 
 export default function Dashboard() {
   const currentUser = auth.currentUser;
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [onlineGame, setOnlineGame] = useState();
+  const [localGame, setLocalGame] = useState('');
+
+  const local = () => {
+    onOpen();
+    setLocalGame(`local`);
+  };
+
   const router = useRouter();
 
   const startOnlineGame = async (
@@ -30,11 +39,13 @@ export default function Dashboard() {
       name: localStorage.getItem('userName'),
       creator: true,
     };
-    console.log('member', member);
+
     const game = {
       status: 'waiting',
       member: [member],
-      gameId: `${Math.random().toString(36).substring(2, 9)}_${Date.now()}`,
+      gameId:
+        localGame ||
+        `${Math.random().toString(36).substring(2, 9)}_${Date.now()}`,
     };
 
     await db.collection('game').doc(game.gameId).set(game);
@@ -59,7 +70,7 @@ export default function Dashboard() {
     <Box>
       <Flex width="100vw" height="100vh">
         <Center backgroundColor={'teal'} width="100%">
-          <Button colorScheme="blue" onClick={onOpen}>
+          <Button colorScheme="blue" onClick={local}>
             Play Locally
           </Button>
         </Center>
