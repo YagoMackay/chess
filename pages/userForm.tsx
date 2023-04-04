@@ -11,6 +11,7 @@ export default function UserForm() {
   const [isGameOver, setIsGameOver] = useState();
   const [result, setResult] = useState();
   const [turn, setTurn] = useState();
+  const [position, setPosition] = useState();
   const router = useRouter();
   const [name, setName] = useState('');
 
@@ -21,6 +22,7 @@ export default function UserForm() {
       setIsGameOver(game.isGameOver);
       setResult(game.result);
       setTurn(game.turn);
+      setPosition(game.position);
     });
     return () => subscribe.unsubscribe();
   }, []);
