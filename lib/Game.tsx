@@ -3,7 +3,8 @@ import { Chess, Color } from 'chess.js';
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 import { fromDocRef } from 'rxfire/firestore';
-import { BehaviorSubject, map } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 interface Member {
   uid: string;
